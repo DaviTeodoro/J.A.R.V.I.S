@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-net --allow-run --allow-read --allow-write --unstable
 
-import { bold, green, red } from 'https://deno.land/std/fmt/colors.ts';
+import { green, red } from 'https://deno.land/std/fmt/colors.ts';
 import { config } from 'https://deno.land/x/dotenv/mod.ts';
 
 const env = config();
@@ -15,7 +15,6 @@ async function readSetupPrompt() {
 }
 
 async function fetchFromOpenAI(prompt) {
-  // console.log(bold('Enviando requisição para a API...',)
   const requestData = {
     model: MODEL,
     messages: prompt,
@@ -49,11 +48,6 @@ async function executeBash(command) {
 
   process.close();
 
-  console.log(
-    status,
-    new TextDecoder().decode(output),
-    new TextDecoder().decode(errorOutput).trim()
-  );
   if (status.success && !errorOutput.length) {
     return new TextDecoder().decode(output).trim() || '';
   } else {
@@ -66,6 +60,18 @@ async function askUser(question) {
   await Deno.stdout.write(new TextEncoder().encode(question));
   const n = await Deno.stdin.read(buf);
   return new TextDecoder().decode(buf.subarray(0, n)).trim();
+}
+
+async function saveMessagesToFile(messages) {
+  const userInput = messages.find((msg) => msg.role === 'user').content;
+  const words = userInput.split(/\s+/).slice(0, 5).join('_');
+  const fileName = `mensagens/chat_${words}.txt`;
+  const formattedMessages = messages
+    .map(
+      (msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+    )
+    .join();
+  await Deno.writeTextFile(fileName, formattedMessages);
 }
 
 async function main() {
@@ -116,6 +122,8 @@ async function main() {
 
             if (sendResponse.toLowerCase() === 's') {
               messages.push({ role: 'assistant', content: result });
+              await saveMessagesToFile(messages);
+
               messages.push({
                 role: 'user',
                 content: `PROMPT: ${commandResult}`,
@@ -126,6 +134,8 @@ async function main() {
             }
           } else {
             messages.push({ role: 'assistant', content: result });
+            await saveMessagesToFile(messages);
+
             messages.push({
               role: 'user',
               content: `PROMPT: ${commandResult}`,
@@ -140,6 +150,7 @@ async function main() {
 
     console.log(green(`Assistant: ${result}`));
     messages.push({ role: 'assistant', content: result });
+    await saveMessagesToFile(messages);
   }
 }
 
