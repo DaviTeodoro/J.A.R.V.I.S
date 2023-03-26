@@ -1,52 +1,61 @@
-# Projeto principal
+# J.A.R.V.I.S
 
-Este projeto contém um script main.js escrito em Deno, que permite realizar uma conversa interativa com a API OpenAI. O script lê comandos do usuário e envia-os para a API OpenAI, exibe a resposta e pode até mesmo executar comandos shell (bash) se o usuário aprovar.
+J.A.R.V.I.S (Just A Rather Very Intelligent System) is a project inspired by the Marvel character, which allows you to have an interactive conversation with the OpenAI API. The main script (`main.js`) is written in Deno and reads commands from the user, sending them to the OpenAI API. It displays the response and can even execute shell (bash) commands if the user approves.
 
-## Requisitos
+## Requirements
 
 - Deno (https://deno.land/)
-- Acesso ao serviço API OpenAI (necessário criar um arquivo .env com a chave)
+- Access to the OpenAI API service (you need to create a .env file with the key)
 
-## Como executar
+## How to run
 
-1. Certifique-se de que o Deno está instalado e funcionando corretamente no seu computador.
-2. Crie um arquivo .env na raiz deste projeto com as seguintes variáveis:
+1. Make sure Deno is installed and working properly on your computer.
+2. Create a .env file in the root of this project with the following variables:
 
 ```
-API_KEY=<sua_chave_api_openai>
+API_KEY=&lt;your_openai_api_key&gt;
 API_URL=https://api.openai.com/v1/engines/davinci-codex/completions
-MODEL=davinci-codex
+MODEL_DUMP=&lt;dump_model_name&gt;
+MODEL_SMART=&lt;smart_model_name&gt;
 ```
 
-3. Siga as instruções a seguir para criar um executável e adicioná-lo ao seu PATH:
+3. Follow the instructions below to create an executable and add it to your PATH:
 
-### Criar um executável
+### Create an executable
 
-- Crie um arquivo chamado `main` (sem extensão) com o seguinte conteúdo:
+- Create a file called `jarvis` (no extension) with the following content:
 
 ```
 #!/bin/sh
-deno run --allow-net --allow-run --allow-read --allow-write --unstable /caminho/absoluto/para/main.js "$@"
-```
-Lembre-se de substituir `/caminho/absoluto/para/` pelo caminho absoluto para a pasta onde o arquivo main.js está localizado.
-
-- Torne o arquivo `main` executável com o seguinte comando:
-
-```
-chmod +x main
+deno run --allow-net --allow-run --allow-read --allow-write --unstable /absolute/path/to/main.js "$@"
 ```
 
-### Adicionar executável ao PATH
+Remember to replace `/absolute/path/to/` with the absolute path to the folder where the main.js file is located.
 
-- Abra seu arquivo de configuração do shell (geralmente é o `.bashrc`, `.bash_profile` ou `.zshrc`) e acrescente a seguinte linha ao final do arquivo:
+- Make the `jarvis` file executable with the following command:
 
 ```
-export PATH="/caminho/absoluto/para/pasta:$PATH"
+chmod +x jarvis
 ```
-Substitua novamente `/caminho/absoluto/para/pasta/` pelo caminho absoluto para a pasta onde o arquivo `main` está localizado. Salve o arquivo e reinicie seu terminal.
 
-4. Depois de adicionar o executável ao PATH, você pode executar o script simplesmente digitando `main` no terminal.
+### Add executable to PATH
 
-## Observações
+- Open your shell configuration file (usually it's the `.bashrc`, `.bash_profile`, or `.zshrc`) and add the following line at the end of the file:
 
-O script permite executar comandos de shell (bash) se o usuário aprovar. Tenha cuidado ao executar comandos em seu sistema, pois eles podem alterar arquivos e configurações importantes. Certifique-se de compreender completamente o efeito de um comando antes de executá-lo.
+```
+export PATH="/absolute/path/to/folder:$PATH"
+```
+
+Replace `/absolute/path/to/folder/` again with the absolute path to the folder where the `jarvis` file is located. Save the file and restart your terminal.
+
+4. After adding the executable to PATH, you can run the script by simply typing `jarvis` in the terminal, followed by the flags `-d` to use the `MODEL_DUMP` model or `-s` to use the `MODEL_SMART` model. If no flag is provided, the `MODEL_SMART` model will be used by default.
+
+Example:
+
+```
+jarvis -d
+```
+
+## Notes
+
+The script allows you to execute shell (bash) commands if the user approves. Be careful when running commands on your system, as they may alter important files and settings. Make sure you fully understand the effect of a command before executing it.

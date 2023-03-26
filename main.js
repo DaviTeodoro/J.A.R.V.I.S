@@ -2,21 +2,35 @@
 
 import { green, red } from 'https://deno.land/std/fmt/colors.ts';
 import { config } from 'https://deno.land/x/dotenv/mod.ts';
+import { parse } from 'https://deno.land/std/flags/mod.ts';
+
+function selectModel() {
+  const args = parse(Deno.args);
+
+  if (args.d) {
+    return MODEL_DUMP;
+  } else if (args.s) {
+    return MODEL_SMART;
+  } else {
+    return MODEL_SMART; // Use o modelo SMART como padrão
+  }
+}
 
 const env = config();
 
 const API_KEY = env.API_KEY;
 const API_URL = env.API_URL;
-const MODEL = env.MODEL;
+const MODEL_DUMP = env.MODEL_DUMP;
+const MODEL_SMART = env.MODEL_SMART;
 
 async function readSetupPrompt() {
   const data = await Deno.readTextFile('setup_prompt.txt');
   return data;
 }
 
-async function fetchFromOpenAI(prompt) {
+async function fetchFromOpenAI(prompt, model) {
   const requestData = {
-    model: MODEL,
+    model: model,
     messages: prompt,
   };
 
@@ -63,7 +77,9 @@ async function askUser(question) {
 }
 
 async function saveMessagesToFile(messages) {
-  const userInput = messages.find((msg) => msg.role === 'user').content;
+  const [setupMessage, ...rest] = messages;
+
+  const userInput = rest.find((msg) => msg.role === 'user').content;
   const words = userInput.split(/\s+/).slice(0, 5).join('_');
   const fileName = `mensagens/chat_${words}.txt`;
   const formattedMessages = messages
@@ -75,6 +91,7 @@ async function saveMessagesToFile(messages) {
 }
 
 async function main() {
+  const selectedModel = selectModel();
   let setupPrompt = await readSetupPrompt();
   let messages = [
     {
@@ -93,7 +110,7 @@ async function main() {
     }
 
     messages.push({ role: 'user', content: userInput });
-    let result = await fetchFromOpenAI(messages);
+    let result = await fetchFromOpenAI(messages, selectedModel);
 
     let match;
     do {
@@ -128,7 +145,7 @@ async function main() {
                 role: 'user',
                 content: `PROMPT: ${commandResult}`,
               });
-              result = await fetchFromOpenAI(messages);
+              result = await fetchFromOpenAI(messages, selectedModel);
             } else {
               break;
             }
@@ -140,7 +157,7 @@ async function main() {
               role: 'user',
               content: `PROMPT: ${commandResult}`,
             });
-            result = await fetchFromOpenAI(messages);
+            result = await fetchFromOpenAI(messages, selectedModel);
           }
         } else {
           break;
