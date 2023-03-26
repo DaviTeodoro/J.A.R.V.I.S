@@ -68,6 +68,7 @@ async function executeBash(command) {
     return `Erro: ${new TextDecoder().decode(errorOutput).trim()}`;
   }
 }
+
 async function askUser(question) {
   const buf = new Uint8Array(1024);
 
@@ -77,7 +78,7 @@ async function askUser(question) {
 }
 
 async function saveMessagesToFile(messages) {
-  const [setupMessage, ...rest] = messages;
+  const [, ...rest] = messages;
 
   const userInput = rest.find((msg) => msg.role === 'user').content;
   const words = userInput.split(/\s+/).slice(0, 5).join('_');
@@ -86,7 +87,7 @@ async function saveMessagesToFile(messages) {
     .map(
       (msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
     )
-    .join();
+    .join('\n');
   await Deno.writeTextFile(fileName, formattedMessages);
 }
 
@@ -103,7 +104,6 @@ async function main() {
 
   while (!exit) {
     const userInput = await askUser('User: ');
-
     if (!userInput) {
       console.error(red('Por favor, forneça uma entrada.'));
       continue;
@@ -113,42 +113,31 @@ async function main() {
     let result = await fetchFromOpenAI(messages, selectedModel);
 
     let match;
-    do {
-      match = result.match(/<bash>(.*?)<\/bash>/s);
+    let lastCommandResult = '';
+    let commandList = [];
+    while ((match = result.match(/<bash>(.*?)<\/bash>/s))) {
+      const bashCommand = match[1].trim();
+      result = result.replace(match[0], '').trim();
+      commandList.push(bashCommand);
+    }
 
-      if (match) {
-        const bashCommand = match[1].trim();
-        console.log(green(`Assistant: ${result}`));
-        const executeConfirmation = await askUser(
-          `A API retornou um comando para ser executado: "${bashCommand}". Você deseja executá-lo? (s/n): `
-        );
+    if (commandList.length > 0) {
+      console.log(green(`Assistant: ${result}`));
+      const executeConfirmation = await askUser(
+        `A API retornou uma lista de comandos para serem executados: "${commandList.join(
+          '", "'
+        )}". Você deseja executá-los? (s/n): `
+      );
 
-        if (executeConfirmation.toLowerCase() === 's') {
+      if (executeConfirmation.toLowerCase() === 's') {
+        for (const bashCommand of commandList) {
           const commandResult = await executeBash(bashCommand);
           const isError = commandResult.startsWith('Erro: ');
-          const wordCount = commandResult.split(/\s+/).length;
 
           console.log(green(`Resultado do comando: ${commandResult}`));
 
-          if (wordCount > 100) {
-            const sendResponse = await askUser(
-              `${
-                isError ? 'Erro' : 'Resultado'
-              } do comando: "${commandResult}". Este resultado é longo, contendo mais de 100 palavras. Você deseja enviar isso de volta para a API? (s/n): `
-            );
-
-            if (sendResponse.toLowerCase() === 's') {
-              messages.push({ role: 'assistant', content: result });
-              await saveMessagesToFile(messages);
-
-              messages.push({
-                role: 'user',
-                content: `PROMPT: ${commandResult}`,
-              });
-              result = await fetchFromOpenAI(messages, selectedModel);
-            } else {
-              break;
-            }
+          if (!isError) {
+            lastCommandResult = commandResult;
           } else {
             messages.push({ role: 'assistant', content: result });
             await saveMessagesToFile(messages);
@@ -158,16 +147,25 @@ async function main() {
               content: `PROMPT: ${commandResult}`,
             });
             result = await fetchFromOpenAI(messages, selectedModel);
+            break;
           }
-        } else {
-          break;
         }
       }
-    } while (match);
+    }
 
-    console.log(green(`Assistant: ${result}`));
-    messages.push({ role: 'assistant', content: result });
-    await saveMessagesToFile(messages);
+    if (!match) {
+      console.log(green(`Assistant: ${result}`));
+      messages.push({ role: 'assistant', content: result });
+      await saveMessagesToFile(messages);
+
+      if (lastCommandResult) {
+        messages.push({
+          role: 'user',
+          content: `PROMPT: ${lastCommandResult}`,
+        });
+        result = await fetchFromOpenAI(messages, selectedModel);
+      }
+    }
   }
 }
 
