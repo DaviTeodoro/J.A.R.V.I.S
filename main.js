@@ -81,7 +81,7 @@ async function saveMessagesToFile(messages) {
 
   const userInput = rest.find((msg) => msg.role === 'user').content;
   const words = userInput.split(/\s+/).slice(0, 5).join('_');
-  const fileName = `mensagens/${words}.txt`;
+  const fileName = `chats/${words}.txt`;
   const formattedMessages = messages
     .map(
       (msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`

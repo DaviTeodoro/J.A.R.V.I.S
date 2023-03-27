@@ -1,3 +1,9 @@
+> Disclaimer:
+
+> 1- Starting from this message and including the code, almost everything written in this program was written by ChatGPT-4. So please keep this in mind if you are crazy enough to run and use this.
+
+> 2- It's quite expensive and addictive; the price adds up quickly.
+
 # J.A.R.V.I.S
 
 J.A.R.V.I.S (Just A Rather Very Intelligent System) is a project inspired by the Marvel character, which allows you to have an interactive conversation with the OpenAI API. The main script (`main.js`) is written in Deno and reads commands from the user, sending them to the OpenAI API. It displays the response and can even execute shell (bash) commands if the user approves.
@@ -19,7 +25,9 @@ MODEL_DUMP=&lt;dump_model_name&gt;
 MODEL_SMART=&lt;smart_model_name&gt;
 ```
 
-3. Follow the instructions below to create an executable and add it to your PATH:
+3. You can update the setup_prompt to handle your own commands.
+
+4. Follow the instructions below to create an executable and add it to your PATH:
 
 ### Create an executable
 
