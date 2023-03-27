@@ -4,7 +4,12 @@
 
 > 2- It's quite expensive and addictive; the price adds up quickly.
 
-# J.A.R.V.I.S
+# J.A.R.V.I.S - ChatGPT in your terminal
+
+
+
+https://user-images.githubusercontent.com/11483241/228049822-23015ea6-9c3d-4196-b031-f27b6067eae6.mp4
+
 
 J.A.R.V.I.S (Just A Rather Very Intelligent System) is a project inspired by the Marvel character, which allows you to have an interactive conversation with the OpenAI API. The main script (`main.js`) is written in Deno and reads commands from the user, sending them to the OpenAI API. It displays the response and can even execute shell (bash) commands if the user approves.
 
