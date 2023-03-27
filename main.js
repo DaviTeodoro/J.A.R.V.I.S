@@ -1,6 +1,4 @@
 #!/usr/bin/env -S deno run --allow-net --allow-run --allow-read --allow-write --unstable
-
-import { green, red } from 'https://deno.land/std/fmt/colors.ts';
 import { config } from 'https://deno.land/x/dotenv/mod.ts';
 import { parse } from 'https://deno.land/std/flags/mod.ts';
 
@@ -29,6 +27,7 @@ async function readSetupPrompt() {
 }
 
 async function fetchFromOpenAI(prompt, model) {
+  console.log('Fetching from OpenAI...', prompt);
   const requestData = {
     model: model,
     messages: prompt,
@@ -65,7 +64,7 @@ async function executeBash(command) {
   if (status.success && !errorOutput.length) {
     return new TextDecoder().decode(output).trim() || '';
   } else {
-    return `Erro: ${new TextDecoder().decode(errorOutput).trim()}`;
+    return `Error: ${new TextDecoder().decode(errorOutput).trim()}`;
   }
 }
 
@@ -82,7 +81,7 @@ async function saveMessagesToFile(messages) {
 
   const userInput = rest.find((msg) => msg.role === 'user').content;
   const words = userInput.split(/\s+/).slice(0, 5).join('_');
-  const fileName = `mensagens/chat_${words}.txt`;
+  const fileName = `mensagens/${words}.txt`;
   const formattedMessages = messages
     .map(
       (msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
@@ -103,69 +102,62 @@ async function main() {
   let exit = false;
 
   while (!exit) {
-    const userInput = await askUser('User: ');
-    if (!userInput) {
-      console.error(red('Por favor, forneça uma entrada.'));
+    const userInput = await askUser('You: ');
+    if (userInput.toLowerCase() === 'exit') {
+      exit = true;
       continue;
     }
 
-    messages.push({ role: 'user', content: userInput });
-    let result = await fetchFromOpenAI(messages, selectedModel);
+    messages.push({
+      role: 'user',
+      content: userInput,
+    });
 
-    let match;
-    let lastCommandResult = '';
-    let commandList = [];
-    while ((match = result.match(/<bash>(.*?)<\/bash>/s))) {
-      const bashCommand = match[1].trim();
-      result = result.replace(match[0], '').trim();
-      commandList.push(bashCommand);
-    }
+    const gptResponse = await fetchFromOpenAI(messages, selectedModel);
+    const bashCommandMatches = [
+      ...gptResponse.matchAll(/<bash>(.*?)<\/bash>/gs),
+    ];
 
-    if (commandList.length > 0) {
-      console.log(green(`Assistant: ${result}`));
-      const executeConfirmation = await askUser(
-        `A API retornou uma lista de comandos para serem executados: "${commandList.join(
-          '", "'
-        )}". Você deseja executá-los? (s/n): `
-      );
+    let commandResults = '';
 
-      if (executeConfirmation.toLowerCase() === 's') {
-        for (const bashCommand of commandList) {
+    if (bashCommandMatches.length > 0) {
+      for (const match of bashCommandMatches) {
+        const bashCommand = match[1].trim();
+        console.log(`J.A.R.V.I.S suggested the command: ${bashCommand}`);
+        const executeCommand = await askUser(
+          'Do you want to execute this command? (y/n): '
+        );
+
+        if (executeCommand.toLowerCase() === 'y') {
           const commandResult = await executeBash(bashCommand);
-          const isError = commandResult.startsWith('Erro: ');
-
-          console.log(green(`Resultado do comando: ${commandResult}`));
-
-          if (!isError) {
-            lastCommandResult = commandResult;
-          } else {
-            messages.push({ role: 'assistant', content: result });
-            await saveMessagesToFile(messages);
-
-            messages.push({
-              role: 'user',
-              content: `PROMPT: ${commandResult}`,
-            });
-            result = await fetchFromOpenAI(messages, selectedModel);
-            break;
-          }
+          commandResults += `${bashCommand}: ${commandResult}\n`;
+          console.log(`Command result:\n${commandResult}`);
+        } else {
+          commandResults += `Command not executed: ${bashCommand}\n`;
         }
       }
+
+      messages.push({
+        role: 'user',
+        content: `PROMPT: ${commandResults}`,
+      });
+
+      // Fetch the assistant's response after sending the command results
+      const followUpResponse = await fetchFromOpenAI(messages, selectedModel);
+      messages.push({
+        role: 'assistant',
+        content: followUpResponse,
+      });
+      console.log(`J.A.R.V.I.S: ${followUpResponse}`);
+    } else {
+      messages.push({
+        role: 'assistant',
+        content: gptResponse,
+      });
+      console.log(`J.A.R.V.I.S: ${gptResponse}`);
     }
 
-    if (!match) {
-      console.log(green(`Assistant: ${result}`));
-      messages.push({ role: 'assistant', content: result });
-      await saveMessagesToFile(messages);
-
-      if (lastCommandResult) {
-        messages.push({
-          role: 'user',
-          content: `PROMPT: ${lastCommandResult}`,
-        });
-        result = await fetchFromOpenAI(messages, selectedModel);
-      }
-    }
+    await saveMessagesToFile(messages);
   }
 }
 
