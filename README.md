@@ -4,7 +4,7 @@
 
 > 2- It's quite expensive and addictive; the price adds up quickly.
 
-# J.A.R.V.I.S - ChatGPT in your terminal
+# J.A.R.V.I.S - ChatGPT doing bash stuff in your terminal
 
 
 
